@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Quiet" />
+<meta name="theme-color" content="#f4ede0" />
+<title>Quiet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: 'Iowan Old Style', 'Palatino', 'Georgia', serif;
+    background: #f4ede0;
+    color: #2a241c;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(180,150,100,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(120,90,60,0.05) 0%, transparent 50%);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    position: relative;
+  }
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 2px, rgba(120,90,60,0.012) 2px 4px),
+      repeating-linear-gradient(-45deg, transparent 0 2px, rgba(120,90,60,0.012) 2px 4px);
+    mix-blend-mode: multiply;
+    z-index: 0;
+  }
+  .wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+  }
+  header {
+    padding: 56px 36px 0;
+  }
+  .date {
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    color: #8a7960;
+    text-transform: lowercase;
+    font-style: italic;
+  }
+  .time {
+    font-size: 64px;
+    line-height: 1;
+    margin-top: 10px;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    color: #1f1a13;
+  }
+  .rule {
+    width: 48px;
+    height: 1px;
+    background: #8a7960;
+    margin-top: 24px;
+    opacity: 0.5;
+  }
+  main {
+    flex: 1;
+    padding: 28px 36px 16px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .item {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(138,121,96,0.18);
+    padding: 17px 0;
+    text-align: left;
+    font-family: inherit;
+    font-size: 22px;
+    color: #ffffff;
+    cursor: pointer;
+    letter-spacing: 0.005em;
+    font-weight: 400;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
+  }
+  .item:last-child { border-bottom: none; }
+  .item:active {
+    opacity: 0.4;
+    transform: translateX(6px);
+  }
+  .item .num {
+    font-size: 14px;
+    color: #b8a584;
+    font-style: italic;
+  }
+  .item.italic span:first-child { font-style: italic; }
+  footer {
+    padding: 16px 36px 32px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #a89878;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+  /* Misc overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(244,237,224,0.97);
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px;
+    text-align: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .overlay.show { display: flex; }
+  .overlay .label {
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: #8a7960;
+    text-transform: uppercase;
+    font-style: italic;
+    margin-bottom: 20px;
+  }
+  .overlay .msg {
+    font-size: 19px;
+    line-height: 1.7;
+    color: #2a241c;
+    max-width: 340px;
+    font-style: italic;
+  }
+  .overlay .hint {
+    margin-top: 40px;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: #a89878;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="grain"></div>
+  <div class="wrap">
+    <header>
+      <div class="date" id="date">—</div>
+      <div class="time" id="time">—</div>
+      <div class="rule"></div>
+    </header>
+    <main id="list"></main>
+    <footer>— quiet mode —</footer>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="this.classList.remove('show')">
+    <div class="label">Other Apps</div>
+    <div class="msg">Swipe down from the middle of your home screen, then search for the app you need.</div>
+    <div class="hint">tap anywhere to return</div>
+  </div>
+
+<script>
+  const apps = [
+    { name: "Messages", url: "sms:" },
+    { name: "Phone", url: "tel:" },
+    { name: "Weather", url: "https://weather.com/" },
+    { name: "Clock", url: "clock-alarm:" },
+    { name: "Snapchat", url: "snapchat://" },
+    { name: "Email — Personal", url: "googlegmail://" },
+    { name: "Email — Work", url: "ms-outlook://" },
+    { name: "Music", url: "spotify://" },
+    { name: "Other", url: "__misc__", italic: true },
+  ];
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function updateClock() {
+    const d = new Date();
+    let h = d.getHours();
+    const m = pad(d.getMinutes());
+    const ampm = h >= 12 ? "pm" : "am";
+    h = h % 12 || 12;
+    document.getElementById("time").textContent = `${h}:${m}${ampm}`;
+    document.getElementById("date").textContent = d.toLocaleDateString([], {
+      weekday: "long", month: "long", day: "numeric"
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  const list = document.getElementById("list");
+  apps.forEach((app, i) => {
+    const btn = document.createElement("button");
+    btn.className = "item" + (app.italic ? " italic" : "");
+    btn.innerHTML = `<span>${app.name}</span><span class="num">${pad(i + 1)}</span>`;
+    btn.onclick = () => {
+      if (app.url === "__misc__") {
+        document.getElementById("overlay").classList.add("show");
+      } else {
+        window.location.href = app.url;
+      }
+    };
+    list.appendChild(btn);
+  });
+</script>
+</body>
+</html>
